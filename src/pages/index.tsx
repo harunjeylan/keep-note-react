@@ -8,23 +8,26 @@ import {
   CardActions,
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Grid from "@mui/material/Unstable_Grid2";
 import { useNavigate } from "react-router-dom";
 import ReactSelect from "react-select/creatable";
-import { Note, Tag, RowNote, RowNoteData } from "../util/type";
-import { Notes } from "@mui/icons-material";
-
+import { Note, Tag } from "../util/type";
+import EditTagsModel from "../components/EditTagsModel";
+import MDEditor from "@uiw/react-md-editor";
+import remarkGfm from "remark-gfm";
 type TypeProps = {
   allTags: Tag[];
   allNotes: Note[];
+  onUpdateTag: (id: string, label: string) => void;
+  onDeleteTag: (id: string) => void;
 };
 
-const Home = ({ allTags, allNotes }: TypeProps) => {
+const Home = ({ allTags, allNotes, onUpdateTag, onDeleteTag }: TypeProps) => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
+  const [isModelOpen, setIsModelOpen] = useState(false);
   const filteredNotes = useMemo(() => {
     return allNotes.filter((note) => {
       return (
@@ -54,9 +57,18 @@ const Home = ({ allTags, allNotes }: TypeProps) => {
           >
             Create
           </Button>
-          <Button variant="outlined">Edit</Button>
+          <Button onClick={() => setIsModelOpen(true)} variant="outlined">
+            Edit Tgs
+          </Button>
         </Box>
       </Box>
+      <EditTagsModel
+        isModelOpen={isModelOpen}
+        setIsModelOpen={setIsModelOpen}
+        allTags={allTags}
+        onUpdateTag={onUpdateTag}
+        onDeleteTag={onDeleteTag}
+      />
       <Box className="flex justify-between items-center my-8 py-4 gap-8">
         <TextField
           fullWidth
@@ -67,6 +79,7 @@ const Home = ({ allTags, allNotes }: TypeProps) => {
           onChange={(e) => setTitle(e.target.value)}
           type="text"
           value={title}
+          placeholder="search..."
         />
         <ReactSelect
           options={allTags.map((tag) => {
@@ -87,32 +100,53 @@ const Home = ({ allTags, allNotes }: TypeProps) => {
         />
       </Box>
       <Box className="flex flex-col justify-between items-center my-8 py-4 gap-8">
-        <Box sx={{ flexGrow: 1 }}>
-          <Grid container spacing={2}>
-            {filteredNotes.map((note) => (
-              <Grid key={note.id} xs={12} md={6} lg={4} xl={3}>
+        <Grid container spacing={2} className="w-full">
+          {filteredNotes.map((note) => (
+            <Grid key={note.id} xs={12} md={6} lg={4} xl={3}>
+              <Box
+                onClick={() => navigate(`/${note.id}`)}
+                className="hover:-translate-y-1 duration-200 ease-in-out drop-shadow-sm hover:drop-shadow-md"
+              >
                 <Card
                   variant="outlined"
-                  className="hover:-translate-y-1 duration-150 ease-in-out drop-shadow-sm hover:drop-shadow-md"
+                  className="w-full h-full cursor-pointer"
                 >
                   <CardContent>
-                    <Typography gutterBottom variant="h5" component="div">
+                    <Typography
+                      gutterBottom
+                      variant="subtitle2"
+                      component="p"
+                      className=""
+                    >
                       {note.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {note.body}
-                    </Typography>
+                    <Box data-color-mode="light">
+                      <MDEditor.Markdown
+                        className="w-full h-fit"
+                        style={{ padding: 15 }}
+                        source={note.body.slice(0, 50)}
+                        linkTarget="_blank"
+                        remarkPlugins={[remarkGfm]}
+                        // previewOptions={{
+                        //   linkTarget: "_blank",
+                        // }}
+                      />
+                    </Box>
                   </CardContent>
                   <CardActions>
                     {note.tags?.map((tag) => (
-                      <Chip key={tag.id} label={tag.label} />
+                      <Chip
+                        key={tag.id}
+                        label={tag.label}
+                        className="text-clip"
+                      />
                     ))}
                   </CardActions>
                 </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
     </Box>
   );
